@@ -194,7 +194,15 @@ if (in_array($_GET['channel'],$channels)) {
 		$cha->appendChild($hea);
 		$hea = $xml->createElement('language','en');
 		$cha->appendChild($hea);
-		$hea = $xml->createElement('link','http://www.ita.uni-heidelberg.de/~pmelchior/aas2rss/aas2rss.php?channel='.$channel);
+		$URL_to_script = 'http';
+		if ($_SERVER["HTTPS"] == "on") 
+			$URL_to_script .= 's';
+		$URL_to_script .= '://';
+		if ($_SERVER["SERVER_PORT"] != "80")
+			$URL_to_script .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["SCRIPT_NAME"];
+ 		else
+			$URL_to_script .= $_SERVER["SERVER_NAME"].$_SERVER["SCRIPT_NAME"];
+		$hea = $xml->createElement('link',$URL_to_script.'?channel='.$channel);
 		$cha->appendChild($hea);
 		$hea = $xml->createElement('lastBuildDate',date("D, d M Y H:i:s ").'GMT');
 		$cha->appendChild($hea);
