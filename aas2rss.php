@@ -7,6 +7,7 @@ function appendToLog(&$logfile,$string) {
 	fwrite($logfile,$timestamp.$string."\n");
 }
 
+
 function appendItem($info,$cha,$xml) {
 	$itm = $xml->createElement('item');
 	$cha->appendChild($itm);
@@ -30,6 +31,8 @@ function getDetailPage($link) {
 	$data = file_get_contents($link);
 	$start = stripos($data,"<fieldset class=\"fieldgroup group-announcement\">");
 	$stop = stripos($data,"</fieldset>",$start);
+	// don't flood the server with requests
+	sleep(1);
 	return substr($data,$start,$stop-$start);
 }
 
@@ -60,22 +63,27 @@ function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
 		$id = substr($info['link'],$posequal+1);
 		$detailpage = "cache/".$id;
 		$info['link'] = "http://jobregister.aas.org/".$info['link'];
+		$empty = FALSE;
 		// used cached detailpage if it exists
 		if (file_exists($detailpage)) {
 			$info['desc'] = parseDetails(file_get_contents($detailpage));
 			$info['date'] = date("D, d M Y H:i:s ",filectime($detailpage)).'GMT';
 		} else {
 			$details = getDetailPage($info['link']);
-			file_put_contents($detailpage,$details);
-			$info['desc'] = parseDetails($details);
-			$info['date'] = date("D, d M Y H:i:s ",filectime($detailpage)).'GMT';
 			appendToLog($logfile,"downloading detail page ".$info['link']);
-			// don't flood the server with requests
-			sleep(1);
+			if (strlen($details) == 0) {
+			  $empty = TRUE;
+			  appendToLog($logfile,"discarding empty page for ".$id);
+			}
+			else {
+			  file_put_contents($detailpage,$details);
+			  $info['desc'] = parseDetails($details);
+			  $info['date'] = date("D, d M Y H:i:s ",filectime($detailpage)).'GMT';
+			}
 		}
 		$pos = $titlestop;
-		appendItem($info,$cha,$xml);
-		$i++;
+		if ($empty === FALSE)
+		  appendItem($info,$cha,$xml);
 	}
 }
 
@@ -85,6 +93,7 @@ function deleteChannelXMLs($channels) {
 		unlink($xmlpage);
 	}
 }
+
 
 // log request to file
 appendToLog($logfile,$_SERVER['REMOTE_ADDR']." -> ".$_GET['channel']);
@@ -112,15 +121,11 @@ if ($timestamp+24*60*60 < $now || !file_exists($listpage)) {
 	$online = file_get_contents("http://jobregister.aas.org");
 	// save changed online version to cache
 	file_put_contents($listpage,$online);
-	// if they are different ...
-	if (strcmp($online,$cached) !=0) {
-		$cached = $online;
-		$online = "";
-		appendToLog($logfile,"using online version, deleting XMLs");
-		deleteChannelXMLs($channels);
-	} else {
-		appendToLog($logfile,"using cached version");
-	}
+	$cached = $online;
+	$online = "";
+	// since ads pages could be empty even though the ads are listed
+	// on the index page, we need to regenerate xml files, too
+	deleteChannelXMLs($channels);
 }
 // release lock by closing lock file
 // see below for a saver but slower alternative
@@ -150,6 +155,7 @@ if (in_array($_GET['channel'],$channels)) {
 			$key = "Faculty Positions (tenure/tenure-track)";
 			$starttag = "id=\"FacPosTen\">";
 			$stoptag  = "id=\"Other\">";
+			//$stoptag  = "id=\"PostVFellow\">";
 		} else if ($channel == "other") {
 			$key = "Other Positions";
 			$starttag = "id=\"Other\">";
@@ -175,7 +181,7 @@ if (in_array($_GET['channel'],$channels)) {
 		$description = "RSS feed for ".strtolower($key)." offered at the AAS Job Register";	
 
 		// set up XML DOM
-		$xml = new DOMDocument('1.0');
+		$xml = new DOMDocument('1.0','utf-8');
 		$xml->formatOutput = true;
 		$roo = $xml->createElement('rss');
 		$roo->setAttribute('version', '2.0');
@@ -188,7 +194,7 @@ if (in_array($_GET['channel'],$channels)) {
 		$cha->appendChild($hea);
 		$hea = $xml->createElement('language','en');
 		$cha->appendChild($hea);
-		$hea = $xml->createElement('link','http://hermes.ita.uni-heidelberg.de/~pmelchior/aas2rss/aas2rss.php?channel='.$channel);
+		$hea = $xml->createElement('link','http://www.ita.uni-heidelberg.de/~pmelchior/aas2rss/aas2rss.php?channel='.$channel);
 		$cha->appendChild($hea);
 		$hea = $xml->createElement('lastBuildDate',date("D, d M Y H:i:s ").'GMT');
 		$cha->appendChild($hea);
