@@ -2,8 +2,8 @@
 
 # create logfile and lock(file)
 touch lock
-touch logfile
-chmod 777 logfile
+touch logfile.log
+chmod 777 logfile.log
 
 # create cache and xml dirs
 mkdir cache
