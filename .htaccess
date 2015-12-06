@@ -1,0 +1,4 @@
+<Files "logfile.log">
+  Order Allow,Deny
+  Deny from all
+</Files>
