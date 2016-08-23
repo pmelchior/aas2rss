@@ -1,5 +1,9 @@
 <?php
 ini_set('display_errors', 0);
+
+// set up correct HTTP header for RSS feed
+header('Content-type: application/rss+xml; charset=utf-8');
+
 $logfile = fopen("logfile.log","a+");
 
 function appendToLog(&$logfile,$string) {
