@@ -1,5 +1,9 @@
 <?php
 ini_set('display_errors', 0);
+
+// set up correct HTTP header for RSS feed
+header('Content-type: application/rss+xml; charset=utf-8');
+
 $logfile = fopen("logfile.log","a+");
 
 function appendToLog(&$logfile,$string) {
@@ -67,7 +71,7 @@ function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
 		// used cached detailpage if it exists
 		if (file_exists($detailpage)) {
 			$info['desc'] = parseDetails(file_get_contents($detailpage));
-			$info['date'] = date("D, d M Y H:i:s ",filectime($detailpage)).'GMT';
+			$info['date'] = date("D, d M Y H:i:s ",filemtime($detailpage)).'GMT';
 		} else {
 			$details = getDetailPage($info['link']);
 			appendToLog($logfile,"downloading detail page ".$info['link']);
@@ -103,7 +107,7 @@ $channels = array('postdoc','faculty_visiting','faculty','other','graduate','eng
 
 // check if listpage is missing or is older than 24 hours
 $listpage = "cache/index.html";
-$timestamp = @filectime($listpage);
+$timestamp = @filemtime($listpage);
 $now = time();
 $cached = "";
 if (file_exists($listpage))
