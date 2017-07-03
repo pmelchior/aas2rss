@@ -44,8 +44,16 @@ function parseDetails($details) {
 	// trim garbage from from and end
 	$start = 261;
 	$stop = -6;
-	// leave the other formatting garbage in place
-	return substr($details,$start,$stop);
+	// sanitize the formatting garbage
+	$t = substr($details,$start,$stop);
+	$t = str_replace('&nbsp;','',$t);
+	$t = strip_tags($t, '<p><a>');
+	$t = str_replace('Job Announcement Text:','', $t);
+	$t = str_replace('Included Benefits:','<b>Included Benefits:</b>', $t);
+	$t = str_replace('Related URLs:','<p><b>Related URLs:</b></p>', $t);
+	$t = str_replace('Application Deadline:', '<p><b>Application Deadline:</b></p>', $t);
+	$t = str_replace('Current Status of Position:', '<p><b>Current Status of Position:</b><p>', $t);
+	return $t;
 }
 
 function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
