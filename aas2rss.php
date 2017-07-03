@@ -33,7 +33,7 @@ function appendItem($info,$cha,$xml) {
 
 function getDetailPage($link) {
 	$data = file_get_contents($link);
-	$start = stripos($data,"<fieldset class=\"fieldgroup group-announcement\">");
+	$start = stripos($data,"<fieldset class=\"collapsible group-announcement");
 	$stop = stripos($data,"</fieldset>",$start);
 	// don't flood the server with requests
 	sleep(1);
@@ -41,37 +41,32 @@ function getDetailPage($link) {
 }
 
 function parseDetails($details) {
-  $start = stripos($details,"<div class=\"field-item odd\">");
-  $start += 29;
-  $stop = stripos($details, "</div>", $start);
-  return trim(substr($details,$start,$stop-$start));
+	// trim garbage from from and end
+	$start = 261;
+	$stop = -6;
+	// leave the other formatting garbage in place
+	return substr($details,$start,$stop);
 }
 
 function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
 	global $logfile;
 	$start = strpos($data,$starttag);
 	$stop = strpos($data,$stoptag,$start);
-	$pos = $start;
 
 	$info = array('link' => '','title' => '', 'desc' => '', 'date' => '');
-	while (1) {
-		$pos = strpos($data,"job_view?JobID=",$pos);
-		if ($pos >= $stop || $pos === FALSE)
-			break;
-		$linkstop = strpos($data,"\">",$pos);
-		$info['link'] = substr($data,$pos,$linkstop-$pos);	
-		$titlestart = stripos($data,"<td",$linkstop);
-		$titlestop = stripos($data,"</td>",$titlestart);
-		$info['title'] = htmlspecialchars(strip_tags(substr($data,$titlestart,$titlestop-$titlestart)));
-		$posequal = strpos($info['link'],'=');
-		$id = substr($info['link'],$posequal+1);
+	$pattern = '/<a href="\/ad\/(?<hash>\w+)">(?<title>[\w [:punct:]]+)<\/a>/';
+	$matches = preg_match_all($pattern, substr($data, $start, $stop-$start), $links, PREG_SET_ORDER);
+	foreach ($links as $link) {
+		$id = $link['hash'];
+		// $info['title'] = htmlspecialchars($link['title']);
+		$info['title'] = $link['title'];
 		$detailpage = "cache/".$id;
-		$info['link'] = "http://jobregister.aas.org/".$info['link'];
+		$info['link'] = "http://jobregister.aas.org/ad/".$id;
 		$empty = FALSE;
 		// used cached detailpage if it exists
 		if (file_exists($detailpage)) {
 			$info['desc'] = parseDetails(file_get_contents($detailpage));
-			$info['date'] = date("D, d M Y H:i:s ",filemtime($detailpage)).'GMT';
+			$info['date'] = date("D, d M Y H:i:s",filemtime($detailpage) + date("Z")) . " GMT";
 		} else {
 			$details = getDetailPage($info['link']);
 			appendToLog($logfile,"downloading detail page ".$info['link']);
@@ -82,8 +77,8 @@ function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
 			else {
 			  file_put_contents($detailpage,$details);
 			  $info['desc'] = parseDetails($details);
-			  $info['date'] = date("D, d M Y H:i:s ",filectime($detailpage)).'GMT';
-			}
+			  $info['date'] = date("D, d M Y H:i:s",filectime($detailpage) + date('Z')) . " GMT";
+ 			}
 		}
 		$pos = $titlestop;
 		if ($empty === FALSE)
@@ -147,26 +142,21 @@ if (in_array($_GET['channel'],$channels)) {
 		$key = "";
 		$starttag = "";
 		$stoptag = "";
-		if ($channel == "postdoc") {
-			$key = "Post-doctoral Positions";
-			$starttag = "id=\"PostVFellow\">";
-			$stoptag  = "id=\"PreVGrad\">";
-		} else if ($channel == "faculty_visiting") {
+		if ($channel == "faculty_visiting") {
 			$key = "Faculty Positions (visiting/non-tenure)";
 			$starttag = "id=\"FacPosNonTen\">";
 			$stoptag  = "id=\"FacPosTen\">";
 		} else if ($channel == "faculty") {
 			$key = "Faculty Positions (tenure/tenure-track)";
 			$starttag = "id=\"FacPosTen\">";
-			$stoptag  = "id=\"Other\">";
-			//$stoptag  = "id=\"PostVFellow\">";
-		} else if ($channel == "other") {
-			$key = "Other Positions";
-			$starttag = "id=\"Other\">";
-			$stoptag = "id=\"PostVFellow\">";
+			$stoptag  = "id=\"PostDocFellow\">";
+		} else if ($channel == "postdoc") {
+			$key = "Post-doctoral Positions";
+			$starttag = "id=\"PostDocFellow\">";
+			$stoptag  = "id=\"PreDocGrad\">";
 		} else if ($channel == "graduate") {
 			$key = "Pre-doctoral/Graduate Positions";
-			$starttag = "id=\"PreVGrad\">";
+			$starttag = "id=\"PreDocGrad\">";
 			$stoptag  = "id=\"SciEng\">";
 		} else if ($channel == "engineering") {
 			$key = "Science Engineering Positions";
@@ -179,7 +169,11 @@ if (in_array($_GET['channel'],$channels)) {
 		} else if ($channel == "staff") {
 			$key = "Scientific/Technical Staff";
 			$starttag = "id=\"SciTechStaff\">";
-			$stoptag  = "<div id=\"footer\">";
+			$stoptag = "id=\"Other\">";
+		} else if ($channel == "other") {
+			$key = "Other Positions";
+			$starttag = "id=\"Other\">";
+			$stoptag  = "<div id=\"sidebar-first\">";
 		}
 		$title = "AAS Job Register: $key";
 		$description = "RSS feed for ".strtolower($key)." offered at the AAS Job Register";	
@@ -208,7 +202,7 @@ if (in_array($_GET['channel'],$channels)) {
 			$URL_to_script .= $_SERVER["SERVER_NAME"].$_SERVER["SCRIPT_NAME"];
 		$hea = $xml->createElement('link',$URL_to_script.'?channel='.$channel);
 		$cha->appendChild($hea);
-		$hea = $xml->createElement('lastBuildDate',date("D, d M Y H:i:s ").'GMT');
+		$hea = $xml->createElement('lastBuildDate',date("D, d M Y H:i:s", date('U') - date('Z')) . ' GMT');
 		$cha->appendChild($hea);
 		// parse the new list page to get infos
 		appendToLog($logfile,"creating new XML page $xmlpage");
