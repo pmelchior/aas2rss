@@ -47,7 +47,7 @@ function parseDetails($details) {
 	// sanitize the formatting garbage
 	$t = substr($details,$start,$stop);
 	$t = str_replace('&nbsp;','',$t);
-	$t = strip_tags($t, '<p><a>');
+	$t = strip_tags($t, '<p><a><br><br />');
 	$t = str_replace('Job Announcement Text:','', $t);
 	$t = str_replace('Included Benefits:','<b>Included Benefits:</b>', $t);
 	$t = str_replace('Related URLs:','<p><b>Related URLs:</b></p>', $t);
