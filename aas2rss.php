@@ -62,11 +62,13 @@ function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
 	$stop = strpos($data,$stoptag,$start);
 
 	$info = array('link' => '','title' => '', 'desc' => '', 'date' => '');
-	$pattern = '/<a href="\/ad\/(?<hash>\w+)">(?<title>[\w [:punct:]]+)<\/a>/';
+	$pattern = '/<a href="\/ad\/(?<hash>\w+)">(?<title>[^<]+)<\/a/';
 	$matches = preg_match_all($pattern, substr($data, $start, $stop-$start), $links, PREG_SET_ORDER);
-	foreach ($links as $link) {
+	// regex now finds two links per ad, 
+	// only need the second that has the position title
+	for ($i = 1; $i < count($links); $i+=2) {
+		$link = $links[$i];
 		$id = $link['hash'];
-		// $info['title'] = htmlspecialchars($link['title']);
 		$info['title'] = $link['title'];
 		$detailpage = "cache/".$id;
 		$info['link'] = "http://jobregister.aas.org/ad/".$id;
