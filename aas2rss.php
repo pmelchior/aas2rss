@@ -64,9 +64,7 @@ function parseListPage($data,$cha,$xml,$starttag,$stoptag) {
 	$info = array('link' => '','title' => '', 'desc' => '', 'date' => '');
 	$pattern = '/<a href="\/ad\/(?<hash>\w+)">(?<title>[^<]+)<\/a/';
 	$matches = preg_match_all($pattern, substr($data, $start, $stop-$start), $links, PREG_SET_ORDER);
-	// regex now finds two links per ad, 
-	// only need the second that has the position title
-	for ($i = 1; $i < count($links); $i+=2) {
+	for ($i = 0; $i < count($links); $i+=1) {
 		$link = $links[$i];
 		$id = $link['hash'];
 		$info['title'] = $link['title'];
